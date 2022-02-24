@@ -1,0 +1,19 @@
+bind = ["udp://127.0.0.1:9001"]
+
+connect = ["tcp://broker.com/relay/asdf1234token", "udp://127.0.0.1:9000"]
+
+[multicast]
+addr = "244.10.10.10"
+port = 9000
+
+[broker]
+subscribe = ["/users/AstroRabbit/ISSOrbit"]
+
+[limits.connect]
+
+# Server limits to control user agents
+[limits.bind]
+bitrate = 4096
+
+[net]
+poll_buffer_size = 128
