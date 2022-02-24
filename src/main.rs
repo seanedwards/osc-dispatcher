@@ -25,55 +25,52 @@ async fn main() {
         None => (),
         Some(binds) => {
             let config = config.clone();
-            binds
-                .iter()
-                .map(move |bind| {
-                    let config = config.clone();
-                    let tx = tx.clone();
+            binds.into_iter().for_each(move |bind| {
+                let config = config.clone();
+                let tx = tx.clone();
 
-                    let socket_addr: SocketAddr = bind
-                        .socket_addrs(|| Some(9000 as u16))
-                        .expect("Could not parse SocketAddr")
-                        .first()
-                        .expect("Could not resolve SocketAddr")
-                        .clone();
+                let socket_addr: SocketAddr = bind
+                    .socket_addrs(|| Some(9000 as u16))
+                    .expect("Could not parse SocketAddr")
+                    .first()
+                    .expect("Could not resolve SocketAddr")
+                    .clone();
 
-                    tokio::spawn(async move {
-                        match bind.scheme() {
-                            "udp" => {
-                                // This is a listening UDP socket that receives packets, usually from the local system or LAN.
-                                let socket = UdpSocket::bind(socket_addr)
-                                    .await
-                                    .expect("Couid not bind socket.");
+                tokio::spawn(async move {
+                    match bind.scheme() {
+                        "udp" => {
+                            // This is a listening UDP socket that receives packets, usually from the local system or LAN.
+                            let socket = UdpSocket::bind(socket_addr)
+                                .await
+                                .expect("Couid not bind socket.");
 
-                                loop {
-                                    let _span = span!(tracing::Level::WARN, "udp_bind");
+                            loop {
+                                let _span = span!(tracing::Level::WARN, "udp_bind");
 
-                                    // With UDP, we just yeet the packets
-                                    let mut buf = bytes::BytesMut::with_capacity(512);
-                                    let (_len, _addr) = socket.recv_from(&mut buf).await.unwrap();
-                                    tx.send(buf).unwrap();
-                                }
+                                // With UDP, we just yeet the packets
+                                let mut buf = bytes::BytesMut::with_capacity(512);
+                                let (_len, _addr) = socket.recv_from(&mut buf).await.unwrap();
+                                tx.send(buf).unwrap();
                             }
-                            "tcp" => {
-                                let socket = TcpListener::bind(socket_addr)
-                                    .await
-                                    .expect("Could not bind TCP socket.");
+                        }
+                        "tcp" => {
+                            let socket = TcpListener::bind(socket_addr)
+                                .await
+                                .expect("Could not bind TCP socket.");
 
-                                loop {
-                                    let _span = span!(tracing::Level::WARN, "tcp_bind");
+                            loop {
+                                let _span = span!(tracing::Level::WARN, "tcp_bind");
 
-                                    // With TCP, we spawn stateful agents that coordinate with each other
-                                    let tx = tx.clone();
-                                    let rx = tx.subscribe();
-                                    network::Agent::spawn(config.clone(), &socket, tx, rx).await;
-                                }
+                                // With TCP, we spawn stateful agents that coordinate with each other
+                                let tx = tx.clone();
+                                let rx = tx.subscribe();
+                                network::Agent::spawn(config.clone(), &socket, tx, rx).await;
                             }
-                            _ => (), //panic!("Invalid scheme {}", bind.scheme()),
-                        };
-                    });
-                })
-                .collect::<()>();
+                        }
+                        _ => (), //panic!("Invalid scheme {}", bind.scheme()),
+                    };
+                });
+            });
         }
     };
     /******************************************************/
