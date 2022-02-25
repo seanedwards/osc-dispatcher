@@ -1,13 +1,21 @@
-bind = ["udp://0.0.0.0:9000", "tcp://127.0.0.1:8001"]
+[[socket]]
+mode = "Bind"
+addr = "udp://0.0.0.0:9000"
 
-connect = ["udp://127.0.0.1:9002"]
+[[socket]]
+mode = "Connect"
+addr = "udp://127.0.0.1:9001"
+
+#[[socket]]
+#mode = "Connect"
+#addr = "tcp://relay.olivr.dev:9069/"
+#subscribe = []
 
 #[multicast]
 #addr = "244.10.10.10"
 #port = 9000
 
 [broker]
-subscribe = ["/users/AstroRabbit/ISSOrbit"]
 
 #[limits.connect]
 

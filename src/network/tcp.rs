@@ -1,11 +1,10 @@
 use crate::config::ConfigHandle;
 use std::net::SocketAddr;
-use tokio::sync::broadcast::{Receiver, Sender};
-use tokio::task::JoinHandle;
+use tokio::sync::broadcast::Sender;
 use tokio::{io::BufStream, net::TcpListener, net::TcpSocket};
 
 use bytes::BytesMut;
-use tracing::{debug, info, span, trace, warn};
+use tracing::span;
 
 pub async fn listen(config: &ConfigHandle, socket_addr: &SocketAddr, tx: &Sender<BytesMut>) -> () {
     let socket = TcpListener::bind(socket_addr)

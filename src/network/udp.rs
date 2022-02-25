@@ -1,12 +1,12 @@
 use std::net::SocketAddr;
 use tokio::net::UdpSocket;
-use tokio::sync::broadcast::{Receiver, Sender};
+use tokio::sync::broadcast::Sender;
 use tokio_stream::StreamExt;
 use tokio_util::codec::BytesCodec;
 use tokio_util::udp::UdpFramed;
 
 use bytes::BytesMut;
-use tracing::{debug, info, span, trace, warn};
+use tracing::{span, trace};
 
 use crate::config::ConfigHandle;
 
@@ -21,9 +21,9 @@ pub async fn listen(_config: &ConfigHandle, socket_addr: &SocketAddr, tx: &Sende
     while let Some(value) = stream.next().await {
         let _span = span!(tracing::Level::DEBUG, "udp_recv");
 
-        let (buf, addr) = value.unwrap();
+        let (buf, _addr) = value.unwrap();
         trace!(proto="udp", side="recv", buf = ?buf, addr = ?socket_addr);
-        let size = tx.send(buf).unwrap();
+        let _size = tx.send(buf).unwrap();
     }
 }
 
@@ -41,6 +41,6 @@ pub async fn send(_config: &ConfigHandle, socket_addr: &SocketAddr, tx: &Sender<
         // packet go brrrr
         let buf = rx.recv().await.unwrap();
         trace!(proto="udp", side="send", buf = ?buf, addr = ?socket_addr);
-        let size = socket.send_to(buf.as_ref(), socket_addr).await.unwrap();
+        let _size = socket.send_to(buf.as_ref(), socket_addr).await.unwrap();
     }
 }

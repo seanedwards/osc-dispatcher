@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use chrono::serde::ts_seconds::deserialize as from_ts;
 use chrono::DateTime;
 use std::fs;
-use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
 use url::Url;
@@ -27,17 +26,21 @@ pub struct Limits {
     pub connect: Option<LimitConfig>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct MulticastConfig {
-    pub addr: SocketAddr,
-    pub port: u16,
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum SocketMode {
+    Bind,
+    Connect,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct SocketConfig {
+    pub mode: SocketMode,
+    pub addr: Url,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
-    pub bind: Option<Vec<Url>>,
-    pub connect: Option<Vec<Url>>,
-    pub multicast: Option<MulticastConfig>,
+    pub socket: Vec<SocketConfig>,
     pub limits: Option<Limits>,
 }
 

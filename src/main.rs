@@ -1,12 +1,11 @@
 pub mod config;
 mod network;
-use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use tracing::{debug, info, span, trace, warn};
+use tracing::{debug, info, warn};
 
-use config::ConfigHandle;
+use config::{ConfigHandle, SocketConfig, SocketMode};
 
 #[tokio::main]
 #[tracing::instrument]
@@ -27,75 +26,51 @@ async fn main() {
         pre = env!("CARGO_PKG_VERSION_PRE")
     );
 
-    /******************************************************/
-    /*                   Set up binds                     */
-    /******************************************************/
     let tx = tx_orig.clone();
-    let binds = config.bind.clone();
-    match binds {
-        None => (),
-        Some(binds) => {
-            let config = config.clone();
-            binds.into_iter().for_each(|bind| {
-                let config = config.clone();
-                let tx = tx.clone();
+    config.socket.clone().into_iter().for_each(|socket| {
+        let config = config.clone();
+        let tx = tx.clone();
 
-                debug!(bind = ?bind);
+        let socket_addr = socket
+            .addr
+            .socket_addrs(|| Some(9000 as u16))
+            .expect("Could not parse SocketAddr")
+            .first()
+            .expect("Could not resolve SocketAddr")
+            .clone();
+        debug!(socket = ?socket, socket_addr = ?socket_addr);
 
-                let socket_addr = bind
-                    .socket_addrs(|| Some(9000 as u16))
-                    .expect("Could not parse SocketAddr")
-                    .first()
-                    .expect("Could not resolve SocketAddr")
-                    .clone();
-
-                tokio::spawn(async move {
-                    match bind.scheme() {
-                        "udp" => network::udp::listen(&config, &socket_addr, &tx).await,
-                        "tcp" => network::tcp::listen(&config, &socket_addr, &tx).await,
-                        _ => {
-                            panic!("Invalid scheme {}", bind.scheme());
-                        }
-                    }
-                });
-            })
-        }
-    };
-
-    /******************************************************/
-    /*                  Set up connects                   */
-    /******************************************************/
-    let tx = tx_orig.clone();
-    let connects = config.connect.clone();
-    match connects {
-        None => (),
-        Some(connects) => {
-            let config = config.clone();
-            let tx = tx.clone();
-            //let config = config.clone();
-            connects.into_iter().for_each(move |connect| {
-                let config = config.clone();
-                let tx = tx.clone();
-
-                debug!(connect = ?connect);
-
-                let socket_addr = connect
-                    .socket_addrs(|| Some(9000 as u16))
-                    .expect("Could not parse SocketAddr")
-                    .first()
-                    .expect("Could not resolve SocketAddr")
-                    .clone();
-
-                tokio::spawn(async move {
-                    match connect.scheme() {
-                        "udp" => network::udp::send(&config, &socket_addr, &tx).await,
-                        "tcp" => network::tcp::send(&config, &socket_addr, &tx).await,
-                        _ => (),
-                    }
-                });
-            });
-        }
-    }
+        tokio::spawn(async move {
+            match socket {
+                // Receivers
+                SocketConfig {
+                    mode: SocketMode::Bind,
+                    addr,
+                } if addr.scheme() == "udp" => {
+                    network::udp::listen(&config, &socket_addr, &tx).await
+                }
+                SocketConfig {
+                    mode: SocketMode::Bind,
+                    addr,
+                } if addr.scheme() == "tcp" => {
+                    network::tcp::listen(&config, &socket_addr, &tx).await
+                }
+                // Senders
+                SocketConfig {
+                    mode: SocketMode::Connect,
+                    addr,
+                } if addr.scheme() == "udp" => network::udp::send(&config, &socket_addr, &tx).await,
+                SocketConfig {
+                    mode: SocketMode::Connect,
+                    addr,
+                } if addr.scheme() == "tcp" => network::tcp::send(&config, &socket_addr, &tx).await,
+                // Oh no!
+                _ => {
+                    panic!("Invalid socket config: {:?}", socket)
+                }
+            }
+        });
+    });
 
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
