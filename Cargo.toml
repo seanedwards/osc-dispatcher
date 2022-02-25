@@ -6,20 +6,28 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tracing = { version = "~0.1", features = ["log"] }
+tracing = { version = "~0.1", features = [
+  "log",
+  "max_level_trace",
+  "release_max_level_info",
+] }
 tracing-subscriber = { version = "~0.3", features = ["env-filter"] }
 tracing-futures = "0.2.5"
 #mio = { version = "~0.8", features = ["os-poll", "net"] }
+futures = "0.3.21"
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7.0", features = ["full"] }
+tokio-stream = { version = "0.1.8", features = [] }
 bytes = "1"
 rosc = "~0.6"
 yaml-rust = "~0.4"
-zmq = "~0.9"
 serde = { version = "~1.0", features = ["derive"] }
 toml = "~0.5"
 url = { version = "~2.2", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 ctrlc = "3.2.1"
 
-[features]
-vendored-zmq = ['zmq/vendored']
+[profile.release]
+strip = "debuginfo"
+lto = "fat"
+codegen-units = 1

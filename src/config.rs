@@ -5,12 +5,12 @@ use chrono::DateTime;
 use std::fs;
 use std::net::SocketAddr;
 use std::path::Path;
+use std::sync::Arc;
 use url::Url;
 
 /*
 
 */
-
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct LimitConfig {
     pub rate_bps: u32,
@@ -40,6 +40,8 @@ pub struct Config {
     pub multicast: Option<MulticastConfig>,
     pub limits: Option<Limits>,
 }
+
+pub type ConfigHandle = Arc<Config>;
 
 pub fn read_config<P: AsRef<Path>>(path: P) -> Config {
     let file = fs::read_to_string(&path).expect("Failed to read config file.");
